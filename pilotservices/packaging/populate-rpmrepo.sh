@@ -23,7 +23,7 @@ repodir='/web/sites/glideinwms.fnal.gov/htdocs/rpms/'
 mockdir="/var/lib/mock"
 
 #For now only EL6 support
-versionlist='6'
+versionlist='7'
 
 #For now only 64bit support
 archlist='x86_64'
