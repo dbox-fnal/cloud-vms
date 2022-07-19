@@ -15,6 +15,7 @@ from errors import UserDataError
 
 from contextualization_types import CONTEXTS
 
+
 def smart_bool(s):
     if s is True or s is False:
         return s
@@ -34,24 +35,25 @@ class MetadataManager(object):
             'glideinwms_metadata',
             'glidein_credentials'
         )
-        self.config.log.log_info('Created MetadataManager object for contextualize_protocol %s' % self.config.contextualization_type)
-
+        self.config.log.log_info(
+            'Created MetadataManager object for contextualize_protocol %s' % self.config.contextualization_type)
 
     def write_userdata_file(self):
         # Retrieve the userdata in string format
         userdata = self.retrieve_instance_userdata()
         # Remove the userdata_attributes from the string
         for attribute in self.userdata_attributes:
-            userdata = userdata.replace('%s='%attribute, '')
+            userdata = userdata.replace('%s=' % attribute, '')
         try:
             with open(self.config.userdata_file, 'w') as fd:
                 fd.write(userdata)
         except Exception, ex:
-            raise UserDataError("Error writing to userdata file %s: %s\n" % (self.config.userdata_file, str(ex)))
-
+            raise UserDataError("Error writing to userdata file %s: %s\n" % (
+                self.config.userdata_file, str(ex)))
 
     def retrieve_instance_userdata(self):
-        raise NotImplementedError('Implementation for contextualize_protocol %s not available' % self.config.contextualization_type)
+        raise NotImplementedError(
+            'Implementation for contextualize_protocol %s not available' % self.config.contextualization_type)
 
 
 class EC2MetadataManager(MetadataManager):
@@ -60,7 +62,8 @@ class EC2MetadataManager(MetadataManager):
     """
 
     def retrieve_instance_userdata(self):
-        self.config.log.log_info('Retrieving instance_userdata for contextualize_protocol %s' % self.config.contextualization_type)
+        self.config.log.log_info(
+            'Retrieving instance_userdata for contextualize_protocol %s' % self.config.contextualization_type)
         try:
             # touch the file so that it exists with proper permissions
             vm_utils.touch(self.config.userdata_file, mode=0600)
@@ -69,7 +72,8 @@ class EC2MetadataManager(MetadataManager):
             response = urllib2.urlopen(request)
             userdata = response.read()
         except Exception, ex:
-            raise UserDataError("Error retrieving instance userdata contextualize_protocol %s: %s\n" % (self.config.contextualization_type, str(ex)))
+            raise UserDataError("Error retrieving instance userdata contextualize_protocol %s: %s\n" % (
+                self.config.contextualization_type, str(ex)))
         return userdata
 
 
@@ -79,24 +83,27 @@ class OneMetadataManager(MetadataManager):
     """
 
     def retrieve_instance_userdata(self):
-        self.config.log.log_info('Retrieving instance_userdata for contextualize_protocol %s' % self.config.contextualization_type)
+        self.config.log.log_info(
+            'Retrieving instance_userdata for contextualize_protocol %s' % self.config.contextualization_type)
         context_disk = self.one_context_disk()
         try:
             # Mount cdrom drive... OpenNebula contextualization unmounts it
-            self.config.log.log_info('Mounting opennebula context disk %s' % context_disk)
+            self.config.log.log_info(
+                'Mounting opennebula context disk %s' % context_disk)
             mount_cmd = ["mount", "-t", "iso9660", context_disk, "/mnt"]
             subprocess.call(mount_cmd)
 
             # copy the OpenNebula userdata file
-            self.config.log.log_info('Reading context file: %s' % self.config.one_userdata_file)
+            self.config.log.log_info(
+                'Reading context file: %s' % self.config.one_userdata_file)
             vm_utils.touch(self.config.userdata_file, mode=0600)
             userdata = base64.b64decode(self.read_one_userdata())
             umount_cmd = ["umount", "/mnt"]
             subprocess.call(umount_cmd)
         except Exception, ex:
-            raise UserDataError("Error retrieving instance userdata contextualize_protocol %s: %s\n" % (self.config.contextualization_type, str(ex)))
+            raise UserDataError("Error retrieving instance userdata contextualize_protocol %s: %s\n" % (
+                self.config.contextualization_type, str(ex)))
         return userdata
-
 
     def one_context_disk(self):
         context_disk = "/dev/sr0"
@@ -124,7 +131,6 @@ class OneMetadataManager(MetadataManager):
 
         return context_disk
 
-
     def read_one_userdata(self):
         userdata = ''
         with open(self.config.one_userdata_file, 'r') as fd:
@@ -148,12 +154,13 @@ class GCEMetadataManager(MetadataManager):
     """
 
     def retrieve_instance_userdata(self):
-        self.config.log.log_info('Retrieving instance_userdata for contextualize_protocol %s' % self.config.contextualization_type)
+        self.config.log.log_info(
+            'Retrieving instance_userdata for contextualize_protocol %s' % self.config.contextualization_type)
         try:
             userdata_base_url = self.config.instance_userdata_url
             # touch the file so that it exists with proper permissions
             vm_utils.touch(self.config.userdata_file, mode=0600)
-            # Now retrieve userdata 
+            # Now retrieve userdata
             userdata = {}
             for attribute in self.userdata_attributes:
                 request = urllib2.Request('%s/%s' % (userdata_base_url, attribute),
@@ -161,7 +168,8 @@ class GCEMetadataManager(MetadataManager):
                 response = urllib2.urlopen(request)
                 userdata[attribute] = response.read()
         except Exception, ex:
-            raise UserDataError("Error retrieving instance userdata contextualize_protocol %s: %s\n" % (self.config.contextualization_type, str(ex)))
+            raise UserDataError("Error retrieving instance userdata contextualize_protocol %s: %s\n" % (
+                self.config.contextualization_type, str(ex)))
         return userdata['glideinwms_metadata'] + userdata['glidein_credentials']
 
 
@@ -175,7 +183,7 @@ class GlideinWMSUserData:
     def extract_user_data(self):
         """
         The user data has the following format:
-        pilot ini file####extra args####compressed glidein proxy
+        pilot ini file####extra args####base64_encoded_IDTOKEN
         OR
         ini file
         """
@@ -227,56 +235,45 @@ class GlideinWMSUserData:
                 # check to see if the "don't shutdown" flag has been set
                 self.config.disable_shutdown = False
                 if ini.has_option("vm_properties", "disable_shutdown"):
-                    self.config.disable_shutdown = smart_bool(ini.get("vm_properties", "disable_shutdown"))
+                    self.config.disable_shutdown = smart_bool(
+                        ini.get("vm_properties", "disable_shutdown"))
                     log_msg = "config.disable_shutdown : %s" % self.config.disable_shutdown
                     self.config.log.log_info(self.template % log_msg)
 
                 # set the max_lifetime if available
                 if ini.has_option("vm_properties", "max_lifetime"):
-                    self.config.max_lifetime = ini.get("vm_properties", "max_lifetime")
+                    self.config.max_lifetime = ini.get(
+                        "vm_properties", "max_lifetime")
                     log_msg = "config.max_lifetime : %s" % self.config.max_lifetime
                     self.config.log.log_info(self.template % log_msg)
 
-                # get the proxy file name from the ini file
-                proxy_file_name = ini.get("glidein_startup", "proxy_file_name")
-                log_msg = "proxy_file_name : %s" % proxy_file_name
+                # get the IDTOKEN file name from the ini file
+                idtoken_file_name = ini.get(
+                    "glidein_startup", "idtoken_file_name")
+                log_msg = "idtoken_file_name : %s" % idtoken_file_name
                 self.config.log.log_info(self.template % log_msg)
 
-                # set the full path to the proxy.  The proxy will be written to this path
-                self.config.proxy_file = "%s/%s" % (self.config.home_dir, proxy_file_name)
-                log_msg = "config.proxy_file : %s" % self.config.proxy_file
+                # set the full path to the IDTOKEN, which will be written to this path
+                self.config.idtoken_file = "%s/%s" % (
+                    self.config.home_dir, idtoken_file_name)
+                log_msg = "config.idtoken_file : %s" % self.config.idtoken_file
                 self.config.log.log_info(self.template % log_msg)
 
-                # Get the compressed proxy and write it to a tmp file.
-                # The tmp file name is completely predictable, but this
-                # isn't an interactive node and the lifetime of the node is
-                # very short so the risk of attack on this vector is minimal
-                # HTCondor will attach proxy file passed using the 
-                # ec2_userdata_file at the end. Accessing it as the last
-                # token rather than a fixed positional token gives us
-                # the flexibility to append custom info after the second
-                # token, i.e the extra args token
-               
-                log_msg = "Extracting pilot proxy: from the USERDATA"
+                # the idtoken is already
+                # base64 encoded and small enough to not need
+                # compression as was needed with the proxy
+                #
+
+                log_msg = "Extracting pilot idtoken: from the USERDATA"
                 self.config.log.log_info(self.template % log_msg)
-                compressed_proxy = base64.b64decode(userdata[-1])
-                fd = os.open("%s.gz" % self.config.proxy_file,
-                             os.O_CREAT|os.O_WRONLY, 0600)
+                token_data = userdata[-1]
+                fd = os.open("%s" % self.config.idtoken_file,
+                             os.O_CREAT | os.O_WRONLY, 0600)
                 try:
-                    os.write(fd, compressed_proxy)
+                    os.write(fd, token_data)
                 finally:
                     os.close(fd)
 
-                # modified by Anthony Tiradani from tmp to gz
-                proxy_fd = gzip.open("%s.gz" % self.config.proxy_file, 'rb')
-                proxy_content = proxy_fd.read()
-                proxy_fd.close()
-
-                fd = os.open(self.config.proxy_file, os.O_CREAT|os.O_WRONLY, 0600)
-                try:
-                    os.write(fd, proxy_content)
-                finally:
-                    os.close(fd)
             else:
                 # the only thing expected here is a simple ini file containing:
                 #
@@ -296,13 +293,16 @@ class GlideinWMSUserData:
                 self.config.log.log_info(self.template % log_msg)
 
                 if ini.has_option("vm_properties", "disable_shutdown"):
-                    self.config.disable_shutdown = smart_bool(ini.get("vm_properties", "disable_shutdown"))
+                    self.config.disable_shutdown = smart_bool(
+                        ini.get("vm_properties", "disable_shutdown"))
                     self.config.debug = True
                 elif ini.has_option("DEFAULT", "disable_shutdown"):
-                    self.config.disable_shutdown = smart_bool(ini.get("vm_properties", "disable_shutdown"))
+                    self.config.disable_shutdown = smart_bool(
+                        ini.get("vm_properties", "disable_shutdown"))
                     self.config.debug = True
                 else:
-                    raise UserDataError("Invalid ini file in user data.\nUser data contents:\n%s" % userdata)
+                    raise UserDataError(
+                        "Invalid ini file in user data.\nUser data contents:\n%s" % userdata)
 
         except Exception, ex:
             raise PilotError("Error extracting User Data: %s\n" % str(ex))
@@ -322,5 +322,6 @@ def get_metadata_manager(config):
     context = config.contextualization_type
     metadata_manager_class = '%sMetadataManager' % context
     if not (metadata_manager_class in globals()):
-        raise NotImplementedError('Implementation for %s not available' % context)
+        raise NotImplementedError(
+            'Implementation for %s not available' % context)
     return (globals()[metadata_manager_class])(config)
