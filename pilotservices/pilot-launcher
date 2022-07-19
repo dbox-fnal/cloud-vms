@@ -68,7 +68,7 @@ def main():
         want it to be attached to a console.
     2)  Get the user data that was passed to the AMI - Currently it is a
         tarball.
-    3)  untar the tarball.  The tarball will contain a proxy, the
+    3)  untar the tarball.  The tarball will contain an IDTOKEN, the
         glidein_startup.sh script and an ini file containing all the extra
         information needed
     4)  read the ini file

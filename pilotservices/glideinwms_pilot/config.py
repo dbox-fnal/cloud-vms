@@ -50,8 +50,6 @@ class Config(object):
         # glidein_startup.sh specific attributes
         self.factory_url = ""
         self.pilot_args = ""
-        self.proxy_file = ""
-        self.pilot_args = ""
 
     def setup(self):
         self.setup_logging()

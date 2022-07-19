@@ -33,7 +33,7 @@
 ```ini
 [glidein_startup]
 args = blah
-proxy_file_name = pilot_proxy
+idtoken_file_name = credential_frontend.idtoken
 webbase= na
 
 [vm_properties]
@@ -44,17 +44,12 @@ disable_shutdown = True
 
 ## VM Building
 
- I am using [BoxGrinder](http://boxgrinder.org/) to automate VM builds.  It is a
- tool that really has no comparison IMHO.  All related files are in the 
- boxgrinder directory.  The current BoxGrinder template (and only one 
- "guaranteed" to work at this time) is hcc-template.appl.
+An rpm src file is built using the spec file.
+The VM is then built using packer, the base image ISO  and the src rpm.
 
- I am also trying to get RedHat's other VM image creation tool, [OZ](https://github.com/clalancette/oz/wiki), 
- to work.The template that I am working with can be found in the oz directory.
- 
- NOTE: you need to include a line that comments out the "requiretty" line in 
- /etc/sudoers so that the pilot service can execute privileged commands via sudo.
-
+There are orphan directories for boxgrinder and oz that contain configurations
+for building the VM with these two tools.   Boxgrinder is not supported
+and oz is nearly so.
 
 
 
