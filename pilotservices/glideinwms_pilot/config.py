@@ -50,6 +50,8 @@ class Config(object):
         # glidein_startup.sh specific attributes
         self.factory_url = ""
         self.pilot_args = ""
+        self.proxy_file = ""
+        self.idtoken_file = ""
 
     def setup(self):
         self.setup_logging()
@@ -131,6 +133,7 @@ class Config(object):
             # pylint: disable=W0702
             pass
 
+        environment["X509_USER_PROXY"] = self.proxy_file
         environment["GLIDEIN_CONDOR_TOKEN"] = self.idtoken_file
         environment["SCRATCH"] = self.scratch_dir
         return environment

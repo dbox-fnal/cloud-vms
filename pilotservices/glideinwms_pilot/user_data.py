@@ -1,10 +1,8 @@
-import urllib
 import urllib2
 import subprocess
 import vm_utils
 import ini_handler
 import platform
-import string
 import re
 import gzip
 import os
@@ -13,7 +11,6 @@ import base64
 from errors import PilotError
 from errors import UserDataError
 
-from contextualization_types import CONTEXTS
 
 
 def smart_bool(s):
@@ -247,6 +244,7 @@ class GlideinWMSUserData:
                     log_msg = "config.max_lifetime : %s" % self.config.max_lifetime
                     self.config.log.log_info(self.template % log_msg)
 
+
                 # get the IDTOKEN file name from the ini file
                 idtoken_file_name = ini.get(
                     "glidein_startup", "idtoken_file_name")
@@ -259,20 +257,59 @@ class GlideinWMSUserData:
                 log_msg = "config.idtoken_file : %s" % self.config.idtoken_file
                 self.config.log.log_info(self.template % log_msg)
 
-                # the idtoken is already
-                # base64 encoded and small enough to not need
-                # compression as was needed with the proxy
-                #
 
                 log_msg = "Extracting pilot idtoken: from the USERDATA"
                 self.config.log.log_info(self.template % log_msg)
-                token_data = userdata[-1]
+                token_data = userdata[-2]
                 fd = os.open("%s" % self.config.idtoken_file,
                              os.O_CREAT | os.O_WRONLY, 0600)
                 try:
                     os.write(fd, token_data)
                 finally:
                     os.close(fd)
+
+                # get the proxy file name from the ini file
+                proxy_file_name = ini.get("glidein_startup", "proxy_file_name")
+                log_msg = "proxy_file_name : %s" % proxy_file_name
+                self.config.log.log_info(self.template % log_msg)
+
+                # set the full path to the proxy.  The proxy will be written to this path
+                self.config.proxy_file = "%s/%s" % (self.config.home_dir, proxy_file_name)
+                log_msg = "config.proxy_file : %s" % self.config.proxy_file
+                self.config.log.log_info(self.template % log_msg)
+
+                # Get the compressed proxy and write it to a tmp file.
+                # The tmp file name is completely predictable, but this
+                # isn't an interactive node and the lifetime of the node is
+                # very short so the risk of attack on this vector is minimal
+                # HTCondor will attach proxy file passed using the 
+                # ec2_userdata_file at the end. Accessing it as the last
+                # token rather than a fixed positional token gives us
+                # the flexibility to append custom info after the second
+                # token, i.e the extra args token
+               
+                log_msg = "Extracting pilot proxy: from the USERDATA"
+                self.config.log.log_info(self.template % log_msg)
+                compressed_proxy = base64.b64decode(userdata[-1])
+                fd = os.open("%s.gz" % self.config.proxy_file,
+                             os.O_CREAT|os.O_WRONLY, 0600)
+                try:
+                    os.write(fd, compressed_proxy)
+                finally:
+                    os.close(fd)
+
+                # modified by Anthony Tiradani from tmp to gz
+                proxy_fd = gzip.open("%s.gz" % self.config.proxy_file, 'rb')
+                proxy_content = proxy_fd.read()
+                proxy_fd.close()
+
+                fd = os.open(self.config.proxy_file, os.O_CREAT|os.O_WRONLY, 0600)
+
+                try:
+                    os.write(fd, proxy_content)
+                finally:
+                    os.close(fd)
+
 
             else:
                 # the only thing expected here is a simple ini file containing:
